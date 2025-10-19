@@ -43,7 +43,6 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
   int rc = jpg.open((uint8_t*)outBuffer, (int)OV7670_MAX_JPEG_SIZE);
   if (rc != JPEGE_SUCCESS) {
     DEBUG_PRINTLN("JPEGEncoderWrapper: jpg.open failed");
-    free(rgb888);
     return false;
   }
 
@@ -130,7 +129,6 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
   return false;
 #else
   DEBUG_PRINTLN("JPEGEncoderWrapper: encoder library not detected at compile time");
-  free(rgb888);
   return false;
 #endif
 }
