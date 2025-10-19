@@ -7,11 +7,8 @@
 
 class JPEGEncoderWrapper {
 public:
-  // Encode a raw camera buffer into JPEG. Returns true on success and fills outBuffer/outLen.
-  // By default the library expects the OV7670 to be configured for YUV422 output
-  // (YUYV layout). The function will convert YUV->RGB565 on-the-fly before
-  // feeding data to the JPEG encoder. The input buffer pointer should point to
-  // xres*yres*2 bytes (YUV422) as produced by the camera when in YUV mode.
+  // Encode an RGB565 buffer into JPEG. Returns true on success and fills outBuffer/outLen.
+  // - rgb565: pointer to raw frame buffer (xres * yres * 2 bytes)
   // - xres, yres: dimensions
   // - quality: 0-100 (best)
   // - outBuffer: pointer to caller-allocated buffer where encoded JPEG will be placed

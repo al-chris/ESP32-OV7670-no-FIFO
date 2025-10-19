@@ -11,11 +11,6 @@ class OV7670: public I2SCamera
     QQVGA_RGB565,
     QVGA_RGB565,
     VGA_RGB565,
-    // YUV422 output modes (preferred for JPEG encoders which expect YCbCr/YUV input)
-    QQQVGA_YUV422,
-    QQVGA_YUV422,
-    QVGA_YUV422,
-    VGA_YUV422,
   };
   int xres, yres;
 
@@ -32,8 +27,6 @@ class OV7670: public I2SCamera
   void QQVGARGB565();
   void QQQVGA();
   void QQQVGARGB565();
-  void QQVGAYUV422();
-  void QQQVGAYUV422();
   void inline writeRegister(unsigned char reg, unsigned char data)
   {
     i2c.writeRegister(ADDR, reg, data);

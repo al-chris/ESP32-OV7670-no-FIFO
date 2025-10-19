@@ -35,24 +35,6 @@ OV7670::OV7670(Mode m, const int SIOD, const int SIOC, const int VSYNC, const in
     yres = 60;
     QQQVGARGB565();    
     break;
-    case VGA_YUV422:
-    xres = 640;
-    yres = 480;
-    break;
-    case QVGA_YUV422:
-    xres = 320;
-    yres = 240;
-    break;
-    case QQVGA_YUV422:
-    xres = 160;
-    yres = 120;
-    QQVGAYUV422();
-    break;
-    case QQQVGA_YUV422:
-    xres = 80;
-    yres = 60;
-    QQQVGAYUV422();    
-    break;
     default:
     xres = 0;
     yres = 0;
@@ -158,46 +140,5 @@ void OV7670::QQQVGARGB565()
   saturation(0);
   i2c.writeRegister(ADDR, 0x13, 0xe7); //AWB on
   i2c.writeRegister(ADDR, 0x6f, 0x9f); // Simple AWB
-}
-
-void OV7670::QQVGAYUV422()
-{
-  // Configure sensor for YUV422 (YUYV) output at QQVGA
-  i2c.writeRegister(ADDR, REG_COM7, 0b10000000);  //all registers default
-      
-  i2c.writeRegister(ADDR, REG_CLKRC, 0b10000000); //double clock
-  i2c.writeRegister(ADDR, REG_COM11, 0b1000 | 0b10); //enable auto 50/60Hz detect + exposure timing can be less...
-
-  i2c.writeRegister(ADDR, REG_COM7, 0x00); //YUV
-  i2c.writeRegister(ADDR, REG_COM15, 0x00); //YUV422 (clear RGB flags)
-
-  QQVGA();
-
-  frameControl(196, 52, 8, 488);
-
-  i2c.writeRegister(ADDR, 0xb0, 0x84);
-  saturation(0);
-  i2c.writeRegister(ADDR, 0x13, 0xe7); //AWB on
-  i2c.writeRegister(ADDR, 0x6f, 0x9f);
-}
-
-void OV7670::QQQVGAYUV422()
-{
-  // Configure sensor for YUV422 (YUYV) output at QQQVGA
-  i2c.writeRegister(ADDR, REG_COM7, 0b10000000);  //all registers default
-      
-  i2c.writeRegister(ADDR, REG_CLKRC, 0b10000000); //double clock
-  i2c.writeRegister(ADDR, REG_COM11, 0b1000 | 0b10); //enable auto 50/60Hz detect + exposure timing can be less...
-
-  i2c.writeRegister(ADDR, REG_COM7, 0x00); //YUV
-  i2c.writeRegister(ADDR, REG_COM15, 0x00); //YUV422 (clear RGB flags)
-
-  QQQVGA();
-  frameControl(196, 52, 8, 488);
-
-  i2c.writeRegister(ADDR, 0xb0, 0x84);
-  saturation(0);
-  i2c.writeRegister(ADDR, 0x13, 0xe7); //AWB on
-  i2c.writeRegister(ADDR, 0x6f, 0x9f);
 }
 
