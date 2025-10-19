@@ -1,10 +1,12 @@
 #include "I2SCamera.h"
+#include "Config.h"
 #include "Log.h"
 
 int I2SCamera::blocksReceived = 0;
 int I2SCamera::framesReceived = 0;
 int I2SCamera::xres = 640;
 int I2SCamera::yres = 480;
+I2SCamera::ImageFormat I2SCamera::imageFormat = I2SCamera::FORMAT_BMP;
 gpio_num_t I2SCamera::vSyncPin = (gpio_num_t)0;
 intr_handle_t I2SCamera::i2sInterruptHandle = 0;
 intr_handle_t I2SCamera::vSyncInterruptHandle = 0;
@@ -258,4 +260,21 @@ void I2SCamera::dmaBufferDeinit()
     delete(dmaBuffer);
     dmaBuffer = 0;
     dmaBufferCount = 0;
+}
+
+bool I2SCamera::encodeFrameToJPEG(uint8_t* outBuffer, size_t* outLen, int quality)
+{
+  if (!OV7670_ENABLE_JPEG) {
+    DEBUG_PRINTLN("I2SCamera::encodeFrameToJPEG: JPEG support compiled out");
+    return false;
+  }
+  if(!JPEGEncoderWrapper::available()) {
+    DEBUG_PRINTLN("I2SCamera::encodeFrameToJPEG: no JPEG encoder available");
+    return false;
+  }
+  if (!outBuffer || !outLen) {
+    DEBUG_PRINTLN("I2SCamera::encodeFrameToJPEG: invalid output buffer");
+    return false;
+  }
+  return JPEGEncoderWrapper::encode(frame, xres, yres, quality, outBuffer, outLen);
 }

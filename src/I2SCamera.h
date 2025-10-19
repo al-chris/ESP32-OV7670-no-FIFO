@@ -21,9 +21,24 @@ void gpio_matrix_in(int gpio, int signal_index, bool inverted);
 #include "XClk.h"
 #include "DMABuffer.h"
 #include "esp_attr.h"
+#include "JPEGEncoderWrapper.h"
 
 class I2SCamera
 {
+public:
+  enum ImageFormat {
+    FORMAT_BMP,
+    FORMAT_JPEG
+  };
+
+  // Choose whether subsequent captures should be encoded as BMP or JPEG.
+  // JPEG encoding depends on an external encoder being available; check JPEGEncoderWrapper::available().
+  static ImageFormat imageFormat;
+
+  // Encode the current raw frame buffer to JPEG into outBuffer. The caller must provide a buffer sized large enough
+  // (recommendation: xres * yres bytes or more). Returns true on success and sets outLen.
+  static bool encodeFrameToJPEG(uint8_t* outBuffer, size_t* outLen, int quality = 80);
+
   public:
   static gpio_num_t vSyncPin;
   static int blocksReceived;
