@@ -25,14 +25,16 @@ Quick usage (minimal)
 #include "JPEGEncoderWrapper.h" // optional if using JPEG
 
 // construct camera (use your pin mapping)
-OV7670* camera = new OV7670(OV7670::Mode::QQVGA_RGB565,
+OV7670* camera = new OV7670(OV7670::Mode::QQVGA_YUV422,
                             SIOD, SIOC, VSYNC, HREF, XCLK, PCLK,
                             D0, D1, D2, D3, D4, D5, D6, D7);
 
 // capture one frame
 camera->oneFrame(); // blocks until frame captured
 
-// serve BMP by default: camera->frame points at xres*yres*2 bytes (RGB565)
+// serve BMP by default: camera->frame points at xres*yres*2 bytes. When
+// using YUV modes this buffer contains YUV422 (YUYV) data; examples that
+// produce JPEG will convert to RGB internally.
 client.write((const uint8_t*)camera->frame, camera->xres * camera->yres * 2);
 
 // To produce JPEG (if encoder available):

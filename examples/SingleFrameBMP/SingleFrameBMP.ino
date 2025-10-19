@@ -18,7 +18,7 @@ unsigned char bmpHeader[BMP::headerSize];
 
 void setup() {
   Serial.begin(115200);
-  camera = new OV7670(OV7670::Mode::QQVGA_RGB565, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
+  camera = new OV7670(OV7670::Mode::QQVGA_YUV422, SIOD, SIOC, VSYNC, HREF, XCLK, PCLK, D0, D1, D2, D3, D4, D5, D6, D7);
   BMP::construct16BitHeader(bmpHeader, camera->xres, camera->yres);
 
   WiFi.begin(ssid, password);

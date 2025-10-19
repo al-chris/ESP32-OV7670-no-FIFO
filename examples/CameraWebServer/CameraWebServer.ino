@@ -52,10 +52,10 @@ static int jpegQuality = OV7670_JPEG_QUALITY;
 // UI/MJPEG control state
 static bool mjpegStreaming = false;
 // Current camera mode (runtime). Initialized in setup when camera is created.
-static OV7670::Mode currentMode = OV7670::Mode::QQVGA_RGB565;
+static OV7670::Mode currentMode = OV7670::Mode::QQVGA_YUV422;
 // Pending reconfiguration requested by HTTP handler. Handled in loop().
 volatile bool pendingReinit = false;
-volatile OV7670::Mode pendingMode = OV7670::Mode::QQVGA_RGB565;
+volatile OV7670::Mode pendingMode = OV7670::Mode::QQVGA_YUV422;
 // Debounce for resolution change
 unsigned long lastResolutionMillis = 0;
 const unsigned long resolutionDebounceMs = 500;
@@ -70,7 +70,7 @@ void handleClient() {
   // Wait for data, with a timeout
   unsigned long startTime = millis();
   while (!client.available() && millis() - startTime < 1000) {
-    delay(10);
+    delay(1);
   }
 
   // Read the first line of the request
@@ -315,7 +315,7 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\n--- ESP32 OV7670 (No-FIFO) Camera Test ---");
 
-  camera = new OV7670(OV7670::Mode::QQVGA_RGB565,
+  camera = new OV7670(OV7670::Mode::QQVGA_YUV422,
                       SIOD, SIOC, VSYNC, HREF, XCLK, PCLK,
                       D0, D1, D2, D3, D4, D5, D6, D7);
 

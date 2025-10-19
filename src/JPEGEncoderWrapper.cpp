@@ -30,23 +30,10 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
 {
   if (!outBuffer || !outLen) return false;
 
-  size_t pixelCount = (size_t)xres * (size_t)yres;
-  size_t rgb888Size = pixelCount * 3;
-  uint8_t* rgb888 = (uint8_t*)malloc(rgb888Size);
-  if (!rgb888) {
-    DEBUG_PRINTLN("JPEGEncoderWrapper: failed to allocate RGB888 buffer");
-    return false;
-  }
-
-  for (size_t i = 0; i < pixelCount; ++i) {
-    uint16_t p = ((const uint16_t*)rgb565)[i];
-    uint8_t r = (uint8_t)(((p >> 11) & 0x1F) * 255 / 31);
-    uint8_t g = (uint8_t)(((p >> 5) & 0x3F) * 255 / 63);
-    uint8_t b = (uint8_t)(((p) & 0x1F) * 255 / 31);
-    rgb888[i*3 + 0] = r;
-    rgb888[i*3 + 1] = g;
-    rgb888[i*3 + 2] = b;
-  }
+  // Input buffer is expected to be YUV422 (YUYV) coming from the OV7670 when
+  // the camera is configured for YUV output. Each pair of pixels is stored as
+  // [Y0][U][Y1][V]. We'll convert on-the-fly to RGB565 when filling MCU buffers
+  // for the encoder to avoid large intermediate allocations.
 
   // Prefer JPEGENC (bitbank2) if available.
 #if defined(HAVE_JPEGENC)
@@ -70,7 +57,6 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
   if (rc != JPEGE_SUCCESS) {
     DEBUG_PRINTLN("JPEGEncoderWrapper: encodeBegin failed");
     jpg.close();
-    free(rgb888);
     return false;
   }
 
@@ -81,7 +67,6 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
   if (!mcuBuf) {
     DEBUG_PRINTLN("JPEGEncoderWrapper: failed to allocate MCU buffer");
     jpg.close();
-    free(rgb888);
     return false;
   }
 
@@ -93,7 +78,26 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
         for (int xx = 0; xx < mcuX; ++xx) {
           int srcX = mx + xx;
           if (srcX < xres && srcY < yres) {
-            uint16_t p = ((const uint16_t*)rgb565)[srcY * xres + srcX];
+            // Convert YUYV -> RGB565 for pixel (srcX, srcY)
+            const uint8_t* yuvLine = &rgb565[(size_t)srcY * (size_t)xres * 2];
+            int pairX = srcX & ~1; // base even pixel of the pair
+            size_t base = (size_t)pairX * 2;
+            uint8_t Y0 = yuvLine[base + 0];
+            uint8_t U  = yuvLine[base + 1];
+            uint8_t Y1 = yuvLine[base + 2];
+            uint8_t V  = yuvLine[base + 3];
+            uint8_t Y = (srcX & 1) ? Y1 : Y0;
+
+            int c = (int)Y - 16;
+            int d = (int)U - 128;
+            int e = (int)V - 128;
+            int r = (298 * c + 409 * e + 128) >> 8;
+            int g = (298 * c - 100 * d - 208 * e + 128) >> 8;
+            int b = (298 * c + 516 * d + 128) >> 8;
+            if (r < 0) r = 0; else if (r > 255) r = 255;
+            if (g < 0) g = 0; else if (g > 255) g = 255;
+            if (b < 0) b = 0; else if (b > 255) b = 255;
+            uint16_t p = (uint16_t)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3));
             mcuBuf[idx++] = (uint8_t)(p & 0xFF);
             mcuBuf[idx++] = (uint8_t)((p >> 8) & 0xFF);
           } else {
@@ -106,7 +110,6 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
         DEBUG_PRINTLN("JPEGEncoderWrapper: addMCU failed");
         free(mcuBuf);
         jpg.close();
-        free(rgb888);
         return false;
       }
     }
@@ -116,17 +119,14 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
   if (outSize <= 0) {
     DEBUG_PRINTLN("JPEGEncoderWrapper: jpg.close returned 0");
     free(mcuBuf);
-    free(rgb888);
     return false;
   }
   *outLen = (size_t)outSize;
   free(mcuBuf);
-  free(rgb888);
   return true;
 #elif defined(HAVE_JPEG_ENCODER)
   // If another encoder was detected via JPEGEncoder.h, user must adapt wrapper.
   DEBUG_PRINTLN("JPEGEncoderWrapper: non-JPEGENC encoder detected but wrapper needs wiring");
-  free(rgb888);
   return false;
 #else
   DEBUG_PRINTLN("JPEGEncoderWrapper: encoder library not detected at compile time");
