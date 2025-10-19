@@ -30,24 +30,6 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
 {
   if (!outBuffer || !outLen) return false;
 
-  size_t pixelCount = (size_t)xres * (size_t)yres;
-  size_t rgb888Size = pixelCount * 3;
-  uint8_t* rgb888 = (uint8_t*)malloc(rgb888Size);
-  if (!rgb888) {
-    DEBUG_PRINTLN("JPEGEncoderWrapper: failed to allocate RGB888 buffer");
-    return false;
-  }
-
-  for (size_t i = 0; i < pixelCount; ++i) {
-    uint16_t p = ((const uint16_t*)rgb565)[i];
-    uint8_t r = (uint8_t)(((p >> 11) & 0x1F) * 255 / 31);
-    uint8_t g = (uint8_t)(((p >> 5) & 0x3F) * 255 / 63);
-    uint8_t b = (uint8_t)(((p) & 0x1F) * 255 / 31);
-    rgb888[i*3 + 0] = r;
-    rgb888[i*3 + 1] = g;
-    rgb888[i*3 + 2] = b;
-  }
-
   // Prefer JPEGENC (bitbank2) if available.
 #if defined(HAVE_JPEGENC)
   JPEGENC jpg;
@@ -56,7 +38,6 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
   int rc = jpg.open((uint8_t*)outBuffer, (int)OV7670_MAX_JPEG_SIZE);
   if (rc != JPEGE_SUCCESS) {
     DEBUG_PRINTLN("JPEGEncoderWrapper: jpg.open failed");
-    free(rgb888);
     return false;
   }
 
@@ -70,7 +51,6 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
   if (rc != JPEGE_SUCCESS) {
     DEBUG_PRINTLN("JPEGEncoderWrapper: encodeBegin failed");
     jpg.close();
-    free(rgb888);
     return false;
   }
 
@@ -81,7 +61,6 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
   if (!mcuBuf) {
     DEBUG_PRINTLN("JPEGEncoderWrapper: failed to allocate MCU buffer");
     jpg.close();
-    free(rgb888);
     return false;
   }
 
@@ -101,12 +80,11 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
           }
         }
       }
-      rc = jpg.addMCU(&jpe, mcuBuf, (int)mcuPixels);
+      rc = jpg.addMCU(&jpe, mcuBuf, mcuX * 2);
       if (rc != JPEGE_SUCCESS) {
         DEBUG_PRINTLN("JPEGEncoderWrapper: addMCU failed");
         free(mcuBuf);
         jpg.close();
-        free(rgb888);
         return false;
       }
     }
@@ -116,21 +94,17 @@ bool JPEGEncoderWrapper::encode(const uint8_t* rgb565, int xres, int yres, int q
   if (outSize <= 0) {
     DEBUG_PRINTLN("JPEGEncoderWrapper: jpg.close returned 0");
     free(mcuBuf);
-    free(rgb888);
     return false;
   }
   *outLen = (size_t)outSize;
   free(mcuBuf);
-  free(rgb888);
   return true;
 #elif defined(HAVE_JPEG_ENCODER)
   // If another encoder was detected via JPEGEncoder.h, user must adapt wrapper.
   DEBUG_PRINTLN("JPEGEncoderWrapper: non-JPEGENC encoder detected but wrapper needs wiring");
-  free(rgb888);
   return false;
 #else
   DEBUG_PRINTLN("JPEGEncoderWrapper: encoder library not detected at compile time");
-  free(rgb888);
   return false;
 #endif
 }
